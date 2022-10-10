@@ -16,6 +16,7 @@ import {
   Text,
   useColorScheme,
   View,
+  NativeModules
 } from 'react-native';
 
 import {
@@ -53,6 +54,8 @@ const Section = ({children, title}): Node => {
     </View>
   );
 };
+
+console.log(NativeModules.ModuleFutronic.show("Carregando...!"));
 
 const App: () => Node = () => {
   const isDarkMode = useColorScheme() === 'dark';
