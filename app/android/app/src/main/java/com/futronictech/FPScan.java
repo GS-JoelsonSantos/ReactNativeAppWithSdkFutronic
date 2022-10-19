@@ -227,7 +227,6 @@ public class FPScan {
 			{
 				if( !mDir.isDirectory() )
 				{
-					msgToast("Can not create image folder " + mDir.getAbsolutePath());
 					Log.i("FUTRONIC","Can not create image folder " + mDir.getAbsolutePath() +
 							". File with the same name already exist." );
 					return false;
@@ -298,9 +297,5 @@ public class FPScan {
 			}
 		}
 
-		public void msgToast(String msg) {
-			Toast toast = Toast.makeText(, msg, Toast.LENGTH_LONG);
-			toast.show();
-		}
 	}
 }
