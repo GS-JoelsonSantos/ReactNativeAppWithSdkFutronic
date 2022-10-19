@@ -1,66 +1,102 @@
 package com.futronictech;
 
+import static androidx.core.content.ContextCompat.checkSelfPermission;
+
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.util.Log;
 import android.widget.Toast;
+import androidx.core.app.ActivityCompat;
+
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactMethod;
 
-import android.Manifest;
-import android.app.Activity;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.Bitmap.Config;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.ColorMatrix;
-import android.graphics.ColorMatrixColorFilter;
-import android.graphics.Paint;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
-import androidx.core.app.ActivityCompat;
-import android.view.View;
-import android.view.View.OnClickListener;
-import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.CompoundButton;
-import android.widget.CompoundButton.OnCheckedChangeListener;
-import android.widget.ImageView;
-import android.widget.TextView;
-
 import java.io.File;
-import java.io.FileOutputStream;
-
 
 public class ModuleFutronic extends ReactContextBaseJavaModule {
-    private static TextView mMessage;
-    private static TextView mScannerInfo;
-    private static ImageView mFingerImage;
 
-    public static final int MESSAGE_SHOW_MSG = 1;
-    public static final int MESSAGE_SHOW_SCANNER_INFO = 2;
-    public static final int MESSAGE_SHOW_IMAGE = 3;
-    public static final int MESSAGE_ERROR = 4;
-    public static final int MESSAGE_TRACE = 5;
-    
-    public ModuleFutronic(ReactApplicationContext reactContext) {
-        super(reactContext);
-    }
-    
-    @Override
-    public String getName() {
-        return "ModuleFutronic";
-    }
-    
-    @ReactMethod
-    public void show(String mensagem) {
-        isStoragePermissionGranted();
+     private FPScan mFPScan = null;
+     private File SyncDir = null;
+     private Handler mHandler = null;
+     public static boolean mUsbHostMode = true;
 
-        Toast toast = Toast.makeText(getReactApplicationContext(), mensagem, Toast.LENGTH_LONG);
+     public static UsbDeviceDataExchangeImpl usb_host_ctx = null;
+
+     public ModuleFutronic(ReactApplicationContext reactContext) {
+         super(reactContext);
+     }
+    
+     @Override
+     public String getName() {
+         return "ModuleFutronic";
+     }
+
+     @ReactMethod
+     public void checkFingerprint() {
+         HandlerThread mHandlerThread = new HandlerThread("futronictech");
+         mHandlerThread.start();
+         mHandler = new Handler(mHandlerThread.getLooper());
+         usb_host_ctx = new UsbDeviceDataExchangeImpl(getReactApplicationContext() , mHandler);
+
+         if (isStoragePermissionGranted())
+         {
+             Log.i("FUTRONIC", "Permission is granted");
+
+             usb_host_ctx.CloseDevice();
+             if(usb_host_ctx.OpenDevice(0, true))
+             {
+                 StartScan();
+             }
+             else
+             {
+                 msgToast("Permission is revoked");
+                 if(!usb_host_ctx.IsPendingOpen())
+                 {
+                     Log.i("FUTRONIC", "Can not start scan operation.\nCan't open scanner device");
+                 }
+             }
+         }else{
+             msgToast("Permission is revoked");
+             Log.i("FUTRONIC", "Permission is revoked");
+         }
+     }
+
+    public boolean isStoragePermissionGranted() {
+        if (Build.VERSION.SDK_INT >= 23) {
+            if (checkSelfPermission(getCurrentActivity(),android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                return true;
+            } else {
+                //Log.v(TAG,"Permission is revoked");
+                ActivityCompat.requestPermissions(getCurrentActivity(), new String[]{
+                        Manifest.permission.READ_EXTERNAL_STORAGE,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+
+                return false;
+            }
+        } else {
+            //permission is automatically granted on sdk<23 upon installation
+            return true;
+        }
+    }
+
+    private boolean StartScan()
+    {
+         SyncDir = getReactApplicationContext().getExternalFilesDir(null);
+         mFPScan = new FPScan(usb_host_ctx, SyncDir, mHandler);
+         Log.i("FUTRONIC", "Starting scan");
+         mFPScan.start();
+         return true;
+     }
+
+    public void msgToast(String msg) {
+        Toast toast = Toast.makeText(getReactApplicationContext(), msg, Toast.LENGTH_LONG);
         toast.show();
     }
 
- 
-}
+ }
+
+

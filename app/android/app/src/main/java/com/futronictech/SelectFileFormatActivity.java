@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -89,11 +90,12 @@ public class SelectFileFormatActivity extends Activity {
         .show();
     }
     
-    private void SetFileName()
+    public void SetFileName()
     {    	
     	String[] extraString = new String[2];
     	extraString[0] = mFileFormat;
     	extraString[1] = mDir.getAbsolutePath() + "/"+ mFileName;
+
         Intent intent = new Intent();
         intent.putExtra(EXTRA_FILE_FORMAT, extraString);
         // Set result and finish this Activity
@@ -128,7 +130,7 @@ public class SelectFileFormatActivity extends Activity {
     
     public boolean isImageFolder()
     {
-        File extStorageDirectory = this.getExternalFilesDir(null);
+        File extStorageDirectory = getExternalFilesDir(null);
         mDir = new File(extStorageDirectory, "Android//FtrScanDemo"); 
         if( mDir.exists() )
         {

@@ -1,16 +1,24 @@
 package com.futronictech;
 
+import android.app.Activity;
+import android.content.Intent;
+import android.widget.Toast;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.util.Log;
 
 import java.io.File;
+import java.io.FileOutputStream;
 
 public class FPScan {
     private final Handler mHandler;
     private ScanThread mScanThread;
     private UsbDeviceDataExchangeImpl ctx = null;
     private File mDirSync;
+
+	public static String EXTRA_FILE_FORMAT = "file_format";
+	private String mFileFormat = "WSQ";
+	private static File mDir;
 
     public FPScan(UsbDeviceDataExchangeImpl context, File dirSync, Handler handler ) {
         mHandler = handler;
@@ -28,7 +36,7 @@ public class FPScan {
     public synchronized void stop() {
         if (mScanThread != null) {mScanThread.cancel(); mScanThread = null;}
     }
-    
+
     private class ScanThread extends Thread {
     	private boolean bGetInfo;
     	private Scanner devScan = null;
@@ -37,8 +45,9 @@ public class FPScan {
     	private int errCode;
     	private boolean bRet;
 		private int nNfiq = 0;
-    	
-        public ScanThread() {
+		private String mFileName;
+
+		public ScanThread() {
         	bGetInfo=false;
         	devScan = new Scanner();
         	// set the GlobalSyncDir to 'getExternalFilesDir'
@@ -71,13 +80,16 @@ public class FPScan {
             	{
             		Log.i("FUTRONIC", "Run fp scan");
             		boolean bRet;
-         	        if( FtrScanDemoUsbHostActivity.mUsbHostMode )
-         	        	bRet = devScan.OpenDeviceOnInterfaceUsbHost(ctx);
-         	        else
-         	        	bRet = devScan.OpenDevice();
+         	        if( FtrScanDemoUsbHostActivity.mUsbHostMode ) {
+						Log.i("FUTRONIC", "Using OpenDeviceOnInterfaceUsbHost");
+						bRet = devScan.OpenDeviceOnInterfaceUsbHost(ctx);
+					}else{
+						Log.i("FUTRONIC", "Using OpenDevice");
+						bRet = devScan.OpenDevice();
+					}
+
                     if( !bRet )
                     {
-                        //Toast.makeText(this, strInfo, Toast.LENGTH_LONG).show();
                     	if(FtrScanDemoUsbHostActivity.mUsbHostMode)
                     		ctx.CloseDevice();
                         mHandler.obtainMessage(FtrScanDemoUsbHostActivity.MESSAGE_SHOW_MSG, -1, -1, devScan.GetErrorMessage()).sendToTarget();
@@ -95,10 +107,11 @@ public class FPScan {
                         mHandler.obtainMessage(FtrScanDemoUsbHostActivity.MESSAGE_ERROR).sendToTarget();
 	    	            return;
 	    	        }
-					
+
 	    	        FtrScanDemoUsbHostActivity.InitFingerPictureParameters(devScan.GetImageWidth(), devScan.GetImaegHeight());
 					
 	    	        strInfo = devScan.GetVersionInfo();
+					Log.i("FUTRONIC", "VERSION: "+strInfo);
     	        	mHandler.obtainMessage(FtrScanDemoUsbHostActivity.MESSAGE_SHOW_SCANNER_INFO, -1, -1, strInfo).sendToTarget();
 	    	        bGetInfo = true;
              	}
@@ -113,10 +126,13 @@ public class FPScan {
     	        	mHandler.obtainMessage(FtrScanDemoUsbHostActivity.MESSAGE_SHOW_MSG, -1, -1, devScan.GetErrorMessage()).sendToTarget();
                 // get frame / image2
                 long lT1 = SystemClock.uptimeMillis();
-                if( FtrScanDemoUsbHostActivity.mFrame )
-                	bRet = devScan.GetFrame(FtrScanDemoUsbHostActivity.mImageFP);
-                else
-                	bRet = devScan.GetImage2(4,FtrScanDemoUsbHostActivity.mImageFP);
+                if( FtrScanDemoUsbHostActivity.mFrame ) {
+					bRet = devScan.GetFrame(FtrScanDemoUsbHostActivity.mImageFP);
+					Log.i("FUTRONIC", "Using mFrame "+bRet);
+				}else {
+					Log.i("FUTRONIC", "Using mImageFP");
+					bRet = devScan.GetImage2(4, FtrScanDemoUsbHostActivity.mImageFP);
+				}
                 if( !bRet )
                 {
                 	mHandler.obtainMessage(FtrScanDemoUsbHostActivity.MESSAGE_SHOW_MSG, -1, -1, devScan.GetErrorMessage()).sendToTarget();
@@ -138,14 +154,19 @@ public class FPScan {
 	                	if( devScan.GetNfiqFromImage(FtrScanDemoUsbHostActivity.mImageFP, FtrScanDemoUsbHostActivity.mImageWidth, FtrScanDemoUsbHostActivity.mImageHeight))
 	                		nNfiq = devScan.GetNIFQValue();
                 	}				
-                	if( FtrScanDemoUsbHostActivity.mFrame ) 
-                		strInfo = String.format("OK. GetFrame time is %d(ms)",  SystemClock.uptimeMillis()-lT1);
-                	else
-                		strInfo = String.format("OK. GetImage2 time is %d(ms)",  SystemClock.uptimeMillis()-lT1);
+                	if( FtrScanDemoUsbHostActivity.mFrame ) {
+						strInfo = String.format("OK. GetFrame time is %d(ms)", SystemClock.uptimeMillis() - lT1);
+						saveImageWsq();
+						saveImageBmp();
+					}else {
+						strInfo = String.format("OK. GetImage2 time is %d(ms)", SystemClock.uptimeMillis() - lT1);
+					}
                 	if( FtrScanDemoUsbHostActivity.mNFIQ )
                 	{
                 		strInfo = strInfo + String.format("NFIQ=%d", nNfiq);
-                	}						
+                	}
+
+					Log.i("FUTRONIC", strInfo);
                 	mHandler.obtainMessage(FtrScanDemoUsbHostActivity.MESSAGE_SHOW_MSG, -1, -1, strInfo ).sendToTarget();
                 }
 				synchronized (FtrScanDemoUsbHostActivity.mSyncObj) 
@@ -181,5 +202,105 @@ public class FPScan {
 			}
        	      	           	
         }
-    }    
+
+		public void saveImageWsq()
+		{
+			isImageFolder();
+			mDir = new File(mDirSync, "Android//FtrScanDemo");
+			mFileName = mDir.getAbsolutePath() + "/digital.wsq";
+			SaveImageByFileFormat("WSQ", mFileName);
+		}
+
+
+		public void saveImageBmp()
+		{
+			isImageFolder();
+			mDir = new File(mDirSync, "Android//FtrScanDemo");
+			mFileName = mDir.getAbsolutePath() + "/digital.bmp";
+			SaveImageByFileFormat("BITMAP", mFileName);
+		}
+
+		public boolean isImageFolder()
+		{
+			mDir = new File(mDirSync, "Android//FtrScanDemo");
+			if( mDir.exists() )
+			{
+				if( !mDir.isDirectory() )
+				{
+					msgToast("Can not create image folder " + mDir.getAbsolutePath());
+					Log.i("FUTRONIC","Can not create image folder " + mDir.getAbsolutePath() +
+							". File with the same name already exist." );
+					return false;
+				}
+			} else {
+				try
+				{
+					mDir.mkdirs();
+				}
+				catch( SecurityException e )
+				{
+					Log.i("FUTRONIC", "Can not create image folder " + mDir.getAbsolutePath() +
+							". Access denied.");
+					return false;
+				}
+			}
+			return true;
+		}
+
+		public void SaveImageByFileFormat(String fileFormat, String fileName)
+		{
+			if( fileFormat.compareTo("WSQ") == 0 )	//save wsq file
+			{
+				boolean bRet;
+				bRet = devScan.OpenDeviceOnInterfaceUsbHost(ModuleFutronic.usb_host_ctx);
+
+				if( !bRet )
+				{
+					Log.i("FUTRONIC",devScan.GetErrorMessage());
+					return;
+				}
+
+				byte[] wsqImg = new byte[FtrScanDemoUsbHostActivity.mImageWidth* FtrScanDemoUsbHostActivity.mImageHeight];
+				long hDevice = devScan.GetDeviceHandle();
+				System.out.println(hDevice);
+				ftrWsqAndroidHelper wsqHelper = new ftrWsqAndroidHelper();
+				System.out.println(wsqHelper);
+				if( wsqHelper.ConvertRawToWsq(hDevice, FtrScanDemoUsbHostActivity.mImageWidth, FtrScanDemoUsbHostActivity.mImageHeight, 2.25f, FtrScanDemoUsbHostActivity.mImageFP, wsqImg) )
+				{
+					File file = new File(fileName);
+					try {
+						FileOutputStream out = new FileOutputStream(file);
+						out.write(wsqImg, 0, wsqHelper.mWSQ_size);	// save the wsq_size bytes data to file
+						out.close();
+						Log.i("FUTRONIC","Image is saved (wsq) as " + fileName);
+						//devScan.CloseDeviceUsbHost();
+					} catch (Exception e) {
+						Log.i("FUTRONIC","Exception in saving file (wsq)");
+					}
+				}
+				else
+					Log.i("FUTRONIC","Failed to convert the image!");
+
+
+				return;
+			}
+
+			File file = new File(fileName);
+			try {
+				FileOutputStream out = new FileOutputStream(file);
+				//mBitmapFP.compress(Bitmap.CompressFormat.PNG, 90, out);
+				MyBitmapFile fileBMP = new MyBitmapFile(FtrScanDemoUsbHostActivity.mImageWidth, FtrScanDemoUsbHostActivity.mImageHeight, FtrScanDemoUsbHostActivity.mImageFP);
+				out.write(fileBMP.toBytes());
+				out.close();
+				Log.i("FUTRONIC","Image is saved (bmp) as " + fileName);
+			} catch (Exception e) {
+				Log.i("FUTRONIC","Exception in saving file (bmp)");
+			}
+		}
+
+		public void msgToast(String msg) {
+			Toast toast = Toast.makeText(, msg, Toast.LENGTH_LONG);
+			toast.show();
+		}
+	}
 }

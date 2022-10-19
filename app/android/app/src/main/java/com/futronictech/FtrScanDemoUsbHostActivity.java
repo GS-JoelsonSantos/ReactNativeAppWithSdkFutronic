@@ -1,5 +1,7 @@
 package com.futronictech;
 
+import static android.content.ContentValues.TAG;
+
 import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
@@ -16,6 +18,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import androidx.core.app.ActivityCompat;
+
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -29,6 +33,13 @@ import com.app.R;
 
 import java.io.File;
 import java.io.FileOutputStream;
+
+import android.widget.Toast;
+
+import com.app.MainActivity;
+import com.facebook.react.bridge.ReactContextBaseJavaModule;
+import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.bridge.ReactMethod;
 
 public class FtrScanDemoUsbHostActivity extends Activity {
     /** Called when the activity is first created. */
@@ -72,7 +83,7 @@ public class FtrScanDemoUsbHostActivity extends Activity {
 
     // Intent request codes
     private static final int REQUEST_FILE_FORMAT = 1;
-    private UsbDeviceDataExchangeImpl usb_host_ctx = null;
+    public static UsbDeviceDataExchangeImpl usb_host_ctx = null;
 
     private File SyncDir = null;
 
@@ -115,7 +126,7 @@ public class FtrScanDemoUsbHostActivity extends Activity {
         mCheckUsbHostMode = (CheckBox) findViewById(R.id.cbUsbHostMode);
 		mCheckNFIQ = (CheckBox) findViewById(R.id.cbNFIQ);
 
-        usb_host_ctx = new UsbDeviceDataExchangeImpl(this, mHandler);
+        usb_host_ctx = new UsbDeviceDataExchangeImpl(this , mHandler);
 		SyncDir = this.getExternalFilesDir(null);
 
 		if ( !isStoragePermissionGranted() )
@@ -259,8 +270,7 @@ public class FtrScanDemoUsbHostActivity extends Activity {
 
 	public boolean isStoragePermissionGranted() {
 		if (Build.VERSION.SDK_INT >= 23) {
-			if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-					== PackageManager.PERMISSION_GRANTED) {
+			if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
 				//Log.v(TAG,"Permission is granted");
 				return true;
 			} else {
@@ -281,8 +291,8 @@ public class FtrScanDemoUsbHostActivity extends Activity {
 	public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
 		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 		if( requestCode == 1) {
-			//Log.v("FtrScanDemoUsbHost","Permission: "+permissions[0]+ "was "+grantResults[0]);
-			//Log.v("FtrScanDemoUsbHost","Permission: "+permissions[1]+ "was "+grantResults[1]);
+			Log.v("FtrScanDemoUsbHost","Permission: "+permissions[0]+ "was "+grantResults[0]);
+			Log.v("FtrScanDemoUsbHost","Permission: "+permissions[1]+ "was "+grantResults[1]);
 			if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 				//resume tasks needing this permission
 				mButtonScan.setEnabled(true);
@@ -303,7 +313,7 @@ public class FtrScanDemoUsbHostActivity extends Activity {
 	    startActivityForResult(serverIntent, REQUEST_FILE_FORMAT);
     }
     
-    private void SaveImageByFileFormat(String fileFormat, String fileName)
+    static void SaveImageByFileFormat(String fileFormat, String fileName)
     {
  	   	if( fileFormat.compareTo("WSQ") == 0 )	//save wsq file
     	{    	
@@ -315,7 +325,7 @@ public class FtrScanDemoUsbHostActivity extends Activity {
     			bRet = devScan.OpenDevice();
     		if( !bRet )
     		{
-                mMessage.setText(devScan.GetErrorMessage());
+				Log.i("FUTRONIC",devScan.GetErrorMessage());
                 return;    			
     		}
     		byte[] wsqImg = new byte[mImageWidth*mImageHeight];
@@ -328,13 +338,13 @@ public class FtrScanDemoUsbHostActivity extends Activity {
     	            FileOutputStream out = new FileOutputStream(file);                    
     	            out.write(wsqImg, 0, wsqHelper.mWSQ_size);	// save the wsq_size bytes data to file
     	            out.close();
-    	            mMessage.setText("Image is saved as " + fileName);
-    	         } catch (Exception e) { 
-    	        	 mMessage.setText("Exception in saving file"); 
+					Log.i("FUTRONIC","Image is saved as " + fileName);
+    	         } catch (Exception e) {
+					Log.i("FUTRONIC","Exception in saving file");
     	         }     			
     		}
     		else
-    			mMessage.setText("Failed to convert the image!");
+				Log.i("FUTRONIC","Failed to convert the image!");
     		if( mUsbHostMode )
     			devScan.CloseDeviceUsbHost();
     		else
@@ -349,9 +359,9 @@ public class FtrScanDemoUsbHostActivity extends Activity {
             MyBitmapFile fileBMP = new MyBitmapFile(mImageWidth, mImageHeight, mImageFP);
             out.write(fileBMP.toBytes());
             out.close();
-            mMessage.setText("Image is saved as " + fileName);
-         } catch (Exception e) { 
-        	 mMessage.setText("Exception in saving file"); 
+			Log.i("FUTRONIC","Image is saved as " + fileName);
+         } catch (Exception e) {
+			Log.i("FUTRONIC","Exception in saving file");
          } 
     }
     
@@ -431,5 +441,6 @@ public class FtrScanDemoUsbHostActivity extends Activity {
              break;            
         }
     }
-    
+
 }
+

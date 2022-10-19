@@ -55,7 +55,7 @@ const Section = ({children, title}): Node => {
   );
 };
 
-console.log(NativeModules.ModuleFutronic.show("Carregando...!"));
+console.log(NativeModules.ModuleFutronic.checkFingerprint());
 
 const App: () => Node = () => {
   const isDarkMode = useColorScheme() === 'dark';
