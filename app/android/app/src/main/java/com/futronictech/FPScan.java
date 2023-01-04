@@ -28,6 +28,7 @@ public class FPScan {
 
     public synchronized void start() {
         if (mScanThread == null) {
+			Log.i("FUTRONIC", "Init ScanThread");
         	mScanThread = new ScanThread();
         	mScanThread.start();
         }
@@ -75,7 +76,7 @@ public class FPScan {
 
         public void run() {
             while (!FtrScanDemoUsbHostActivity.mStop) 
-            {
+            {				
             	if(!bGetInfo)
             	{
             		Log.i("FUTRONIC", "Run fp scan");
