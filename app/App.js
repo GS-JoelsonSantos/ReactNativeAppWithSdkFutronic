@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -12,16 +12,26 @@ export default function App(){
 
   const [startScan, setStartScan] = useState(0);
 
-
-  // console.log(NativeModules.ModuleFutronic.checkOpenDevice());
+  useEffect(()=>{  
+    NativeModules.ModuleFutronic.isStoragePermissionGranted();
+  },[]);
   
   function changeStatusScanner(){
     if(startScan){
+      console.log("Stoping Scan")
       NativeModules.ModuleFutronic.stopScan();
       setStartScan(0);
     }else{
-      NativeModules.ModuleFutronic.checkFingerprint();
-      setStartScan(1);
+      NativeModules.ModuleFutronic.checkFingerprint().then((res)=>{
+        if(res){
+          console.log("-- Starting Scan --")
+          NativeModules.ModuleFutronic.stopScan();
+          NativeModules.ModuleFutronic.StartScan();
+          setStartScan(1);
+        }else{
+          alert("Verifique se o leitor está conectado ao smartphone \n Habilite todas as permissões solicitadas");
+        }
+      });
     }
   }
 

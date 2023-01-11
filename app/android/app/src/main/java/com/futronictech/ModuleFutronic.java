@@ -11,6 +11,7 @@ import android.util.Log;
 import android.widget.Toast;
 import androidx.core.app.ActivityCompat;
 
+
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -37,7 +38,7 @@ public class ModuleFutronic extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void checkFingerprint() {
+    public void checkFingerprint(Promise promise) {
 
         if(usb_host_ctx == null){
             HandlerThread mHandlerThread = new HandlerThread("futronictech");
@@ -46,36 +47,30 @@ public class ModuleFutronic extends ReactContextBaseJavaModule {
             usb_host_ctx = new UsbDeviceDataExchangeImpl(getReactApplicationContext() , mHandler);
         }
 
-        if (isStoragePermissionGranted())
+        if( mFPScan != null )
         {
-            Log.i("FUTRONIC", "Permission is granted");
-            
-            if( mFPScan != null )
-            {
-                FtrScanDemoUsbHostActivity.mStop = true;       
-                mFPScan.stop();            
-            }
-
-            FtrScanDemoUsbHostActivity.mStop = false;       
-
-            usb_host_ctx.CloseDevice();
-            if(usb_host_ctx.OpenDevice(0, true))
-            {
-                StartScan();
-            }
-            else
-            {
-                msgToast("Permission is revoked");
-                if(!usb_host_ctx.IsPendingOpen())
-                {
-                    Log.i("FUTRONIC", "Can not start scan operation.\nCan't open scanner device");
-                }
-            }
-
-        }else{
-            msgToast("Permission is revoked");
-            Log.i("FUTRONIC", "Permission is revoked");
+            FtrScanDemoUsbHostActivity.mStop = true;       
+            mFPScan.stop();            
         }
+
+        FtrScanDemoUsbHostActivity.mStop = false;       
+
+        usb_host_ctx.CloseDevice();
+        if(usb_host_ctx.OpenDevice(0, true))
+        {
+            Log.i("FUTRONIC", "Device is open");
+            promise.resolve(true);
+        }
+        else
+        {
+            msgToast("Permission is revoked");
+            if(!usb_host_ctx.IsPendingOpen())
+            {
+                Log.i("FUTRONIC", "Can not start scan operation.\nCan't open scanner device");
+            }
+            promise.resolve(false);
+        }
+
     }
 
     @ReactMethod
@@ -92,10 +87,6 @@ public class ModuleFutronic extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void checkOpenDevice(Promise promise) {
-        promise.resolve("AAAAAAAAAAAAAAAAA");    
-    }
-
     public boolean isStoragePermissionGranted() {
         if (Build.VERSION.SDK_INT >= 23) {
             if (checkSelfPermission(getCurrentActivity(),android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
@@ -114,14 +105,22 @@ public class ModuleFutronic extends ReactContextBaseJavaModule {
         }
     }
 
-    private boolean StartScan()
+    @ReactMethod
+    public void StartScan()
     {
+        if( mFPScan != null )
+        {
+            FtrScanDemoUsbHostActivity.mStop = true;       
+            mFPScan.stop();            
+        }
+
+        FtrScanDemoUsbHostActivity.mStop = false;       
+
         SyncDir = getReactApplicationContext().getExternalFilesDir(null);
         mFPScan = new FPScan(usb_host_ctx, SyncDir, mHandler);
         Log.i("FUTRONIC", "Starting scan");
         mFPScan.start();
-        return true;
-     }
+    }
 
     public void msgToast(String msg) {
         Toast toast = Toast.makeText(getReactApplicationContext(), msg, Toast.LENGTH_LONG);

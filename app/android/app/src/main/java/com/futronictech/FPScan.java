@@ -28,7 +28,6 @@ public class FPScan {
 
     public synchronized void start() {
         if (mScanThread == null) {
-			Log.i("FUTRONIC", "Init ScanThread");
         	mScanThread = new ScanThread();
         	mScanThread.start();
         }
@@ -113,7 +112,6 @@ public class FPScan {
 					
 	    	        strInfo = devScan.GetVersionInfo();
 					Log.i("FUTRONIC", "VERSION: "+strInfo);
-    	        	mHandler.obtainMessage(FtrScanDemoUsbHostActivity.MESSAGE_SHOW_SCANNER_INFO, -1, -1, strInfo).sendToTarget();
 	    	        bGetInfo = true;
              	}
                 //set options
@@ -123,8 +121,6 @@ public class FPScan {
                 	flag |= devScan.FTR_OPTIONS_DETECT_FAKE_FINGER;
                 if( FtrScanDemoUsbHostActivity.mInvertImage)
                 	flag |= devScan.FTR_OPTIONS_INVERT_IMAGE;                
-                if( !devScan.SetOptions(mask, flag) )
-    	        	mHandler.obtainMessage(FtrScanDemoUsbHostActivity.MESSAGE_SHOW_MSG, -1, -1, devScan.GetErrorMessage()).sendToTarget();
                 // get frame / image2
                 long lT1 = SystemClock.uptimeMillis();
                 if( FtrScanDemoUsbHostActivity.mFrame ) {
@@ -136,7 +132,6 @@ public class FPScan {
 				}
                 if( !bRet )
                 {
-                	mHandler.obtainMessage(FtrScanDemoUsbHostActivity.MESSAGE_SHOW_MSG, -1, -1, devScan.GetErrorMessage()).sendToTarget();
                 	errCode = devScan.GetErrorCode();
                 	if( errCode != devScan.FTR_ERROR_EMPTY_FRAME && errCode != devScan.FTR_ERROR_MOVABLE_FINGER &&  errCode != devScan.FTR_ERROR_NO_FRAME )
                 	{
@@ -144,7 +139,6 @@ public class FPScan {
 	    	        		devScan.CloseDeviceUsbHost();
 	    	        	else
 	    	        		devScan.CloseDevice();
-                        mHandler.obtainMessage(FtrScanDemoUsbHostActivity.MESSAGE_ERROR).sendToTarget();
 	    	            return;                		
                 	}    	        	
                 }
@@ -168,12 +162,10 @@ public class FPScan {
                 	}
 
 					Log.i("FUTRONIC", strInfo);
-                	mHandler.obtainMessage(FtrScanDemoUsbHostActivity.MESSAGE_SHOW_MSG, -1, -1, strInfo ).sendToTarget();
                 }
 				synchronized (FtrScanDemoUsbHostActivity.mSyncObj) 
                 {
 					//show image
-					mHandler.obtainMessage(FtrScanDemoUsbHostActivity.MESSAGE_SHOW_IMAGE).sendToTarget();
 					try {
 						FtrScanDemoUsbHostActivity.mSyncObj.wait(2000);
 					} catch (InterruptedException e) {
