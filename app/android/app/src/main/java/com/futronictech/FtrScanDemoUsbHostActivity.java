@@ -29,17 +29,10 @@ import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.app.R;
-
 import java.io.File;
 import java.io.FileOutputStream;
 
-import android.widget.Toast;
-
-import com.app.MainActivity;
-import com.facebook.react.bridge.ReactContextBaseJavaModule;
-import com.facebook.react.bridge.ReactApplicationContext;
-import com.facebook.react.bridge.ReactMethod;
+import com.app.R;
 
 public class FtrScanDemoUsbHostActivity extends Activity {
     /** Called when the activity is first created. */
@@ -73,7 +66,7 @@ public class FtrScanDemoUsbHostActivity extends Activity {
     public static int mImageWidth = 0;
     public static int mImageHeight = 0;
 	private static int[] mPixels = null;
-    private static Bitmap mBitmapFP = null;
+    public static Bitmap mBitmapFP = null;
 	private static Canvas mCanvas = null;
     private static Paint mPaint = null;
 	

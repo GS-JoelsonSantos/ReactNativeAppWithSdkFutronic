@@ -15,9 +15,9 @@ import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 
-import com.app.R;
-
 import java.io.File;
+
+import com.app.R;
 
 public class SelectFileFormatActivity extends Activity {
 
@@ -131,7 +131,7 @@ public class SelectFileFormatActivity extends Activity {
     public boolean isImageFolder()
     {
         File extStorageDirectory = getExternalFilesDir(null);
-        mDir = new File(extStorageDirectory, "Android//FtrScanDemo"); 
+        mDir = new File(extStorageDirectory, "futronic//fingers"); 
         if( mDir.exists() )
         {
             if( !mDir.isDirectory() )

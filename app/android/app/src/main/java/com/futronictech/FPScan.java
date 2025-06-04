@@ -1,7 +1,10 @@
 package com.futronictech;
 
+import static com.futronictech.FtrScanDemoUsbHostActivity.mBitmapFP;
+
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.widget.Toast;
 import android.os.Handler;
 import android.os.SystemClock;
@@ -15,6 +18,7 @@ public class FPScan {
     private ScanThread mScanThread;
     private UsbDeviceDataExchangeImpl ctx = null;
     private File mDirSync;
+	public int errCode;
 
 	public static String EXTRA_FILE_FORMAT = "file_format";
 	private String mFileFormat = "WSQ";
@@ -37,12 +41,19 @@ public class FPScan {
         if (mScanThread != null) {mScanThread.cancel(); mScanThread = null;}
     }
 
+	public synchronized boolean status() {
+        if (mScanThread != null) {
+			return true;
+		}else{
+			return false;
+		}
+    }
+
     private class ScanThread extends Thread {
     	private boolean bGetInfo;
     	private Scanner devScan = null;
     	private String strInfo;
     	private int mask, flag;
-    	private int errCode;
     	private boolean bRet;
 		private int nNfiq = 0;
 		private String mFileName;
@@ -75,7 +86,7 @@ public class FPScan {
 
         public void run() {
             while (!FtrScanDemoUsbHostActivity.mStop) 
-            {				
+            {
             	if(!bGetInfo)
             	{
             		Log.i("FUTRONIC", "Run fp scan");
@@ -117,14 +128,19 @@ public class FPScan {
                 //set options
                 flag = 0;
                 mask = devScan.FTR_OPTIONS_DETECT_FAKE_FINGER | devScan.FTR_OPTIONS_INVERT_IMAGE;
-                if(FtrScanDemoUsbHostActivity.mLFD)
-                	flag |= devScan.FTR_OPTIONS_DETECT_FAKE_FINGER;
+                // if(FtrScanDemoUsbHostActivity.mLFD)
+					// flag |= devScan.FTR_OPTIONS_DETECT_FAKE_FINGER; // uncomment to enable fake finger detection
                 if( FtrScanDemoUsbHostActivity.mInvertImage)
-                	flag |= devScan.FTR_OPTIONS_INVERT_IMAGE;                
+                	flag |= devScan.FTR_OPTIONS_INVERT_IMAGE;  
+				if( !devScan.SetOptions(mask, flag) )
+    	        	mHandler.obtainMessage(FtrScanDemoUsbHostActivity.MESSAGE_SHOW_MSG, -1, -1, devScan.GetErrorMessage()).sendToTarget();              
                 // get frame / image2
                 long lT1 = SystemClock.uptimeMillis();
+				long hDevice = devScan.GetDeviceHandle();
+
                 if( FtrScanDemoUsbHostActivity.mFrame ) {
 					bRet = devScan.GetFrame(FtrScanDemoUsbHostActivity.mImageFP);
+					devScan.SetDiodesStatus(1, 0);
 					Log.i("FUTRONIC", "Using mFrame "+bRet);
 				}else {
 					Log.i("FUTRONIC", "Using mImageFP");
@@ -151,8 +167,9 @@ public class FPScan {
                 	}				
                 	if( FtrScanDemoUsbHostActivity.mFrame ) {
 						strInfo = String.format("OK. GetFrame time is %d(ms)", SystemClock.uptimeMillis() - lT1);
-						saveImageWsq();
+						devScan.SetDiodesStatus(0, 0);
 						saveImageBmp();
+						// saveImageWsq();
 					}else {
 						strInfo = String.format("OK. GetImage2 time is %d(ms)", SystemClock.uptimeMillis() - lT1);
 					}
@@ -182,7 +199,7 @@ public class FPScan {
         }
 
         public void cancel() {
-        	FtrScanDemoUsbHostActivity.mStop = true;        	        	       	        	
+        	FtrScanDemoUsbHostActivity.mStop = true;   	        	       	        	
         	try {
         		synchronized (FtrScanDemoUsbHostActivity.mSyncObj) 
 		        {
@@ -199,7 +216,7 @@ public class FPScan {
 		public void saveImageWsq()
 		{
 			isImageFolder();
-			mDir = new File(mDirSync, "Android//FtrScanDemo");
+			mDir = new File(mDirSync, "futronic//fingers");
 			mFileName = mDir.getAbsolutePath() + "/digital.wsq";
 			SaveImageByFileFormat("WSQ", mFileName);
 		}
@@ -208,14 +225,14 @@ public class FPScan {
 		public void saveImageBmp()
 		{
 			isImageFolder();
-			mDir = new File(mDirSync, "Android//FtrScanDemo");
+			mDir = new File(mDirSync, "futronic//fingers");
 			mFileName = mDir.getAbsolutePath() + "/digital.bmp";
 			SaveImageByFileFormat("BITMAP", mFileName);
 		}
 
 		public boolean isImageFolder()
 		{
-			mDir = new File(mDirSync, "Android//FtrScanDemo");
+			mDir = new File(mDirSync, "futronic//fingers");
 			if( mDir.exists() )
 			{
 				if( !mDir.isDirectory() )
@@ -254,9 +271,7 @@ public class FPScan {
 
 				byte[] wsqImg = new byte[FtrScanDemoUsbHostActivity.mImageWidth* FtrScanDemoUsbHostActivity.mImageHeight];
 				long hDevice = devScan.GetDeviceHandle();
-				System.out.println(hDevice);
 				ftrWsqAndroidHelper wsqHelper = new ftrWsqAndroidHelper();
-				System.out.println(wsqHelper);
 				if( wsqHelper.ConvertRawToWsq(hDevice, FtrScanDemoUsbHostActivity.mImageWidth, FtrScanDemoUsbHostActivity.mImageHeight, 2.25f, FtrScanDemoUsbHostActivity.mImageFP, wsqImg) )
 				{
 					File file = new File(fileName);
@@ -280,7 +295,7 @@ public class FPScan {
 			File file = new File(fileName);
 			try {
 				FileOutputStream out = new FileOutputStream(file);
-				//mBitmapFP.compress(Bitmap.CompressFormat.PNG, 90, out);
+				// mBitmapFP.compress(Bitmap.CompressFormat.PNG, 90, out);
 				MyBitmapFile fileBMP = new MyBitmapFile(FtrScanDemoUsbHostActivity.mImageWidth, FtrScanDemoUsbHostActivity.mImageHeight, FtrScanDemoUsbHostActivity.mImageFP);
 				out.write(fileBMP.toBytes());
 				out.close();

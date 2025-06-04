@@ -38,7 +38,7 @@ public class ModuleFutronic extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void checkFingerprint(Promise promise) {
+    public void checkDeviceFingerprint(Promise promise) {
 
         if(usb_host_ctx == null){
             HandlerThread mHandlerThread = new HandlerThread("futronictech");
@@ -63,7 +63,6 @@ public class ModuleFutronic extends ReactContextBaseJavaModule {
         }
         else
         {
-            msgToast("Permission is revoked");
             if(!usb_host_ctx.IsPendingOpen())
             {
                 Log.i("FUTRONIC", "Can not start scan operation.\nCan't open scanner device");
@@ -120,6 +119,18 @@ public class ModuleFutronic extends ReactContextBaseJavaModule {
         mFPScan = new FPScan(usb_host_ctx, SyncDir, mHandler);
         Log.i("FUTRONIC", "Starting scan");
         mFPScan.start();
+    }
+
+    @ReactMethod
+    public void checkDeviceIsOpen(Promise promise)
+    {        
+        if(mFPScan != null){
+            if(mFPScan.errCode != 87){
+                promise.resolve(true);
+            }else{
+                promise.resolve(false);
+            }
+        }
     }
 
     public void msgToast(String msg) {
