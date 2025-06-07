@@ -19,6 +19,7 @@ public class FPScan {
     private UsbDeviceDataExchangeImpl ctx = null;
     private File mDirSync;
 	public int errCode;
+    public boolean enableDetectFakeFinger = false;
 
 	public static String EXTRA_FILE_FORMAT = "file_format";
 	private String mFileFormat = "WSQ";
@@ -48,6 +49,18 @@ public class FPScan {
 			return false;
 		}
     }
+
+	public synchronized boolean enableLFD()
+	{
+		enableDetectFakeFinger = true;
+		return true;
+	}
+
+	public synchronized boolean disableLFD()
+	{
+		enableDetectFakeFinger = false;
+		return false;
+	}
 
     private class ScanThread extends Thread {
     	private boolean bGetInfo;
@@ -128,8 +141,10 @@ public class FPScan {
                 //set options
                 flag = 0;
                 mask = devScan.FTR_OPTIONS_DETECT_FAKE_FINGER | devScan.FTR_OPTIONS_INVERT_IMAGE;
-                // if(FtrScanDemoUsbHostActivity.mLFD)
-					// flag |= devScan.FTR_OPTIONS_DETECT_FAKE_FINGER; // uncomment to enable fake finger detection
+
+				Log.i("FUTRONIC", "LFD: "+enableDetectFakeFinger);
+                if( enableDetectFakeFinger )
+					flag |= devScan.FTR_OPTIONS_DETECT_FAKE_FINGER; // uncomment to enable fake finger detection
                 if( FtrScanDemoUsbHostActivity.mInvertImage)
                 	flag |= devScan.FTR_OPTIONS_INVERT_IMAGE;  
 				if( !devScan.SetOptions(mask, flag) )
@@ -169,7 +184,7 @@ public class FPScan {
 						strInfo = String.format("OK. GetFrame time is %d(ms)", SystemClock.uptimeMillis() - lT1);
 						devScan.SetDiodesStatus(0, 0);
 						saveImageBmp();
-						// saveImageWsq();
+						saveImageWsq();
 					}else {
 						strInfo = String.format("OK. GetImage2 time is %d(ms)", SystemClock.uptimeMillis() - lT1);
 					}

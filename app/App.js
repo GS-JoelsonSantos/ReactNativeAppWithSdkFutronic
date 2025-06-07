@@ -30,11 +30,12 @@ const BASEDIR = Platform.select({
 export default function App()
 {  
   const [isStarted, setIsStarted] = useState(false);
+  const [enabledFakeFinger, setEnabledFakeFinger] = useState(false);
   const [msgStatus, setMsgStatus] = useState("Connect the fingerprint scanner!");
   const [image, setImage] = useState(null);
 
   useEffect(()=>{  
-    startScan();
+    // startScan();
   },[]);
 
   const startScan = async () =>
@@ -43,7 +44,8 @@ export default function App()
     available = true;
     setImage(null);
     await fileFingerprintDelete('digital.bmp');
-
+    await fileFingerprintDelete('digital.wsq');
+  
     openDevice();
   }
 
@@ -56,8 +58,12 @@ export default function App()
     {
       if ( deviceIsOpen )
       {
-        NativeModules.ModuleFutronic.stopScan();
         NativeModules.ModuleFutronic.StartScan(); 
+
+        if ( enabledFakeFinger )
+          NativeModules.ModuleFutronic.enableLFD();
+        else 
+          NativeModules.ModuleFutronic.disableLFD();
 
         startScanService();
       }else
@@ -90,7 +96,7 @@ export default function App()
         setImage(`file://${ExternalDirectoryPath}/futronic/fingers/digital.bmp` + '?v=' + new Date());
 
       if ( available )
-        setTimeout( () => openDevice(), 500);            
+        setTimeout( () => startScanService(), 1000);            
     });
   }
 
@@ -121,6 +127,26 @@ export default function App()
     setIsStarted(false);
     available = false;
     setMsgStatus("Start the fingerprint scanner service!");
+  }
+
+  const handleLDF = async () =>
+  {
+    const deviceIsOpen = await NativeModules.ModuleFutronic.checkDeviceFingerprint();
+    const isScanning = await NativeModules.ModuleFutronic.checkDeviceIsOpen();
+    const status = enabledFakeFinger ? false : true
+
+    if ( deviceIsOpen && isScanning )
+    {
+      console.log("DETECT FAKE FINGER", enabledFakeFinger);
+      NativeModules.ModuleFutronic.StartScan(); 
+
+      if ( status )
+        NativeModules.ModuleFutronic.enableLFD();
+      else 
+        NativeModules.ModuleFutronic.disableLFD();
+
+      setEnabledFakeFinger( status );  
+    }
   }
 
   return(
@@ -172,6 +198,13 @@ export default function App()
         <Text style={[styles.btnTxt, { color : !isStarted ? colors.normal : colors.danger }]}> 
           { !isStarted ? "START SCAN" : "STOP SCAN " }           
         </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity 
+        style={[styles.btnOption, { backgroundColor : enabledFakeFinger ? colors.success : colors.danger }]}
+        onPress={ handleLDF }
+      >
+        <Text style={styles.btnOptionTxt}> LFD </Text>
       </TouchableOpacity>
 
     </View>

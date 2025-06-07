@@ -87,5 +87,17 @@ export default StyleSheet.create({
     borderWidth: 1, 
     width: '100%', 
     height: '100%'
+  },
+  btnOption: {
+    position: 'absolute',
+    bottom: 10,
+    left: 10,
+    borderRadius: 5,
+    padding: 5
+  },
+  btnOptionTxt:{
+    color: "#FFF",
+    fontSize: 12,
+    fontWeight: 'bold'
   }
 });

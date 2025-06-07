@@ -86,6 +86,26 @@ public class ModuleFutronic extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
+    public void enableLFD()
+    {
+        if ( mFPScan != null )
+        {
+            Log.i("FUTRONIC", "LFD [ENABLE]");
+            mFPScan.enableLFD();
+        }
+    }
+
+    @ReactMethod
+    public void disableLFD()
+    {
+        if ( mFPScan != null )
+        {
+            Log.i("FUTRONIC", "LFD [DISABLE]");
+            mFPScan.disableLFD();
+        }
+    }
+
+    @ReactMethod
     public boolean isStoragePermissionGranted() {
         if (Build.VERSION.SDK_INT >= 23) {
             if (checkSelfPermission(getCurrentActivity(),android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
@@ -124,13 +144,14 @@ public class ModuleFutronic extends ReactContextBaseJavaModule {
     @ReactMethod
     public void checkDeviceIsOpen(Promise promise)
     {        
-        if(mFPScan != null){
-            if(mFPScan.errCode != 87){
+        if ( mFPScan != null )
+        {
+            if ( mFPScan.errCode != 87 )
                 promise.resolve(true);
-            }else{
+            else
                 promise.resolve(false);
-            }
-        }
+        } else 
+            promise.resolve(false);
     }
 
     public void msgToast(String msg) {
